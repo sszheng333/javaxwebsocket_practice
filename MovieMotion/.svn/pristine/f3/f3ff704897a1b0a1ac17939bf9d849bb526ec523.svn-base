@@ -1,0 +1,63 @@
+/**
+ * 
+ */
+package com.comicyu.utils;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**   
+*    
+* 项目名称：MovieMotion   
+* 类名称：UnicodeUtil   
+* 类描述：   unicode解码编码工具类
+* 创建人：zhengss  
+* 创建时间：2021年6月17日 上午9:51:01   
+* @version        
+*/
+public class UnicodeUtil {
+  //解码
+    private static final String unicodeRegex="\\\\u([0-9a-zA-Z]{4})";
+    public static String decode(String orgString){
+        if(StringUtils.isEmpty(orgString) || !orgString.matches(".*"+unicodeRegex+".*"))return orgString;
+        StringBuilder stringBuilder=new StringBuilder(orgString);
+        int start;
+        int end;
+        int cutDown=0;
+        String unicode;
+        Pattern pattern=Pattern.compile(unicodeRegex);
+        Matcher matcher=pattern.matcher(orgString);
+        while(matcher.find()){
+            unicode=matcher.group(1);
+            char ca=(char)Integer.parseInt(unicode, 16);
+            start=matcher.start()-cutDown;
+            end=matcher.end()-cutDown;
+            stringBuilder.replace(start,end,String.valueOf(ca));
+            cutDown+=5;//unicode是6个字转一个字
+        }
+        return stringBuilder.toString();
+    }
+    //编码
+    public static String stringtoUnicode(String string) {
+        if (string == null || "".equals(string)) {
+            return null;
+        }
+        StringBuffer unicode = new StringBuffer();
+        for (int i = 0; i < string.length(); i++) {
+            char c = string.charAt(i);
+            unicode.append("\\u" + Integer.toHexString(c));
+        }
+        return unicode.toString();
+    }
+
+    public static void main(String[] args) {  
+        // TODO Auto-generated method stub  
+        String s = stringtoUnicode("测试");  
+        System.out.println("编码："+s); 
+        
+        String rString="{\"msg\":\"\\u52a8\\u4f5c\\u8fc1\\u79fb\\u6a21\\u578b\\u8fd8\\u5728\\u5904\\u7406\\u4e2d\",\"status\":\"processing\"}";
+        String s1 = decode(rString);  
+        System.out.println("解码："+s1);  
+
+    }  
+}

@@ -1,0 +1,32 @@
+log4j.rootLogger=info, ServerDailyRollingFile, stdout
+log4j.logger.secondLogger =DEBUG,console,secondAdpter
+
+
+
+log4j.appender.ServerDailyRollingFile=org.apache.log4j.DailyRollingFileAppender 
+log4j.appender.ServerDailyRollingFile.DatePattern='.'yyyy-MM-dd
+#log4j.appender.ServerDailyRollingFile.File=/Users/tanggang/dev/logs/vixo/notify-subscription.log 
+log4j.appender.ServerDailyRollingFile.layout=org.apache.log4j.PatternLayout 
+log4j.appender.ServerDailyRollingFile.layout.ConversionPattern=%d - %m%n 
+log4j.appender.ServerDailyRollingFile.Append=true
+
+log4j.appender.secondAdpter=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.secondAdpter.DatePattern='.'yyyy-MM-dd
+#log4j.appender.secondAdpter.file=/Users/tanggang/dev/logs/xixo/statistic.log
+log4j.appender.secondAdpter.layout=org.apache.log4j.PatternLayout
+log4j.appender.secondAdpter.layout.ConversionPattern=[%5p]|%d{yyyy-MM-dd HH:mm:ss}|%m%n
+log4j.appender.secondAdpter.Append=true
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d %p [%c] - %m%n
+
+log4j.logger.com.ibatis.common.jdbc.SimpleDataSource=debug
+log4j.logger.com.ibatis.common.jdbc.ScriptRunner=debug
+log4j.logger.com.ibatis.sqlmap.engine.impl.SqlMapClientDelegate=debug
+log4j.logger.java.sql.Connection=debug
+log4j.logger.java.sql.Statement=debug
+log4j.logger.java.sql.PreparedStatement=debug,stdout
+
+log4j.logger.com.zhaopin.dao.read=DEBUG
+log4j.logger.com.zhaopin.dao.write=DEBUG

@@ -1,0 +1,36 @@
+
+package com.comicyu.global;
+
+/**
+ * 
+ * 项目名称：UploadVideoTransfer 类名称：Global 类描述： 创建人：zhengss 创建时间：2021年6月11日
+ * 上午10:12:09
+ * 
+ * @version
+ */
+public class Global {
+
+    public static String serverToen = "SDFKdfsdfdsf23sdfsSDFDF";
+
+    public static String serverName = "http://10.69.10.25:8080/MovieMotion/download?file=";
+    
+    public static String videoFolder="moviemotion";
+    
+    public static String folderVideoPath = "/videos/" + videoFolder;
+
+    // 伏羲服务器测试地址
+    public static String motionMoveUrl = "http://dianjing-server-motion-v2-53-8080.apps.danlu.netease.com";
+
+    // 阿里云服务器地址
+    public static String uploadServerName = "https://img.himaker.com/imageServer/upload/file";
+
+    // 下载路径
+    public static String downloadServerName = "https://synctime-iface.innvt91.com/";
+    
+    public static String videoCacheFolder = "/video_cache";
+    /*
+     * public String imagesCacheFolder = "/images_cache";
+     * 
+     * public String videoCacheFolder = "/video_cache";
+     */
+}

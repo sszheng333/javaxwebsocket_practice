@@ -1,0 +1,491 @@
+package com.comicyu.utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.NameValuePair;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+import com.comicyu.domain.ResponseStatus;
+
+import net.sf.json.JSONObject;
+
+/**
+ * <p>Http工具类
+ * 
+ * <p>Http工具类，为系统提供通用Http访问操作方法：
+ * 
+ * <p>1、发送GET请求；
+ * <p>2、发送POST请求。
+ * 
+ */
+public class HttpUtil {
+
+    /**
+     * <p>发送GET请求
+     * 
+     * @param  url GET请求地址
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     */
+    public static byte[] doGet(String url) {
+
+        return HttpUtil.doGet(url , null , null , 0);
+    }
+
+    /**
+     * <p>发送GET请求
+     * 
+     * @param  url       GET请求地址
+     * @param  headerMap GET请求头参数容器
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     */
+    public static byte[] doGet(String url , Map headerMap) {
+
+        return HttpUtil.doGet(url , headerMap , null , 0);
+    }
+
+    /**
+     * <p>发送GET请求
+     * 
+     * @param  url       GET请求地址
+     * @param  proxyUrl  代理服务器地址
+     * @param  proxyPort 代理服务器端口号
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     * @modify  
+     */
+    public static byte[] doGet(String url , String proxyUrl , int proxyPort) {
+
+        return HttpUtil.doGet(url , null , proxyUrl , proxyPort);
+    }
+
+    /**
+     * <p>发送GET请求
+     * 
+     * @param  url       GET请求地址
+     * @param  headerMap GET请求头参数容器
+     * @param  proxyUrl  代理服务器地址
+     * @param  proxyPort 代理服务器端口号
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     * @modify  
+     */
+    public static byte[] doGet(String url , Map headerMap , String proxyUrl , int proxyPort) {
+
+        byte[]     content    = null;
+        HttpClient httpClient = new HttpClient();
+        GetMethod  getMethod  = new GetMethod(url);
+        //getMethod.getParams().setContentCharset("utf-8");
+        //getMethod.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+        if (headerMap != null) {
+
+            //头部请求信息
+            if (headerMap != null) {
+
+                Iterator iterator = headerMap.entrySet().iterator();
+                while (iterator.hasNext()) {
+
+                    Entry entry = (Entry) iterator.next();
+                     
+                    getMethod.addRequestHeader(entry.getKey().toString() , entry.getValue().toString());
+                }
+            }
+        }
+
+        if (StringUtils.isNotBlank(proxyUrl)) {
+
+            httpClient.getHostConfiguration().setProxy(proxyUrl , proxyPort);
+            //httpClient.getParams().setContentCharset("utf-8");
+        }
+
+        //设置成了默认的恢复策略，在发生异常时候将自动重试3次，在这里你也可以设置成自定义的恢复策略
+        getMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT , 10000);
+        //postMethod.getParams().setParameter(HttpMethodParams.RETRY_HANDLER , new DefaultHttpMethodRetryHandler());
+        InputStream inputStream = null;
+        try {
+
+            if (httpClient.executeMethod(getMethod) == HttpStatus.SC_OK) {
+                long responseContentLength = getMethod.getResponseContentLength();
+                System.out.println("responseContentLength : " +responseContentLength);
+                //读取内容
+                inputStream = getMethod.getResponseBodyAsStream();
+                content     = IOUtils.toByteArray(inputStream);
+
+                System.out.println("contentlength : " +content.length);
+                if(responseContentLength > content.length){
+                    String response = "error";
+                    content = response.getBytes();
+                }
+            } else {
+
+                System.err.println("Method failed: " + getMethod.getStatusLine());
+            }
+        } catch (IOException ex) {
+
+            ex.printStackTrace();
+        } finally {
+
+            IOUtils.closeQuietly(inputStream);
+            getMethod.releaseConnection();
+        }
+        return content;
+    }
+
+    /**
+     * <p>发送POST请求
+     * 
+     * @param  url          POST请求地址
+     * @param  parameterMap POST请求参数容器
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     */
+    public static byte[] doPost(String url , Map parameterMap) {
+
+        return HttpUtil.doPost(url , null , parameterMap , null , null , 0);
+    }
+
+    /**
+     * <p>发送POST请求
+     * 
+     * @param  url          POST请求地址
+     * @param  parameterMap POST请求参数容器
+     * @param  paramCharset 参数字符集名称
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     * @modify  
+     */
+    public static byte[] doPost(String url , Map parameterMap , String paramCharset) {
+
+        return HttpUtil.doPost(url , null , parameterMap , paramCharset , null , 0);
+    }
+
+    /**
+     * <p>发送POST请求
+     * 
+     * @param  url          POST请求地址
+     * @param  headerMap    POST请求头参数容器
+     * @param  parameterMap POST请求参数容器
+     * @param  paramCharset 参数字符集名称
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     * @modify  
+     */
+    public static byte[] doPost(String url , Map headerMap , Map parameterMap , String paramCharset) {
+
+        return HttpUtil.doPost(url , headerMap , parameterMap , paramCharset , null , 0);
+    }
+
+    /**
+     * <p>发送POST请求
+     * 
+     * @param  url          POST请求地址
+     * @param  parameterMap POST请求参数容器
+     * @param  paramCharset 参数字符集名称
+     * @param  proxyUrl     代理服务器地址
+     * @param  proxyPort    代理服务器端口号
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     */
+    public static byte[] doPost(String url , Map parameterMap , String paramCharset , String proxyUrl , int proxyPort) {
+
+        return HttpUtil.doPost(url , null , parameterMap , paramCharset , proxyUrl , proxyPort);
+    }
+
+    /**
+     * <p>发送POST请求
+     * 
+     * @param  url          POST请求地址
+     * @param  headerMap    POST请求头参数容器
+     * @param  parameterMap POST请求参数容器
+     * @param  paramCharset 参数字符集名称
+     * @param  proxyUrl     代理服务器地址
+     * @param  proxyPort    代理服务器端口号
+     * 
+     * @return 与当前请求对应的响应内容字节数组
+     * 
+     * @modify  
+     */
+    public static byte[] doPost(String url , Map headerMap , Map parameterMap , String paramCharset , String proxyUrl , int proxyPort) {
+
+        byte[]     content    = null;
+        HttpClient httpClient = new HttpClient();
+        PostMethod postMethod = new PostMethod(url);
+
+        if (StringUtils.isNotBlank(paramCharset)) {
+
+            postMethod.getParams().setContentCharset(paramCharset);
+            postMethod.getParams().setHttpElementCharset(paramCharset);
+        }
+
+        if (headerMap != null) {
+
+            //头部请求信息
+            if (headerMap != null) {
+
+                Iterator iterator = headerMap.entrySet().iterator();
+                while (iterator.hasNext()) {
+
+                    Entry entry = (Entry) iterator.next();
+                    postMethod.addRequestHeader(entry.getKey().toString() , entry.getValue().toString());
+                }
+            }
+        }
+
+        Iterator iterator = parameterMap.keySet().iterator();
+        while (iterator.hasNext()) {
+
+            String key = (String) iterator.next();
+            postMethod.addParameter(key , (String) parameterMap.get(key));
+        }
+
+        if (StringUtils.isNotBlank(proxyUrl)) {
+
+            httpClient.getHostConfiguration().setProxy(proxyUrl , proxyPort);
+        }
+
+        //设置成了默认的恢复策略，在发生异常时候将自动重试3次，在这里你也可以设置成自定义的恢复策略
+        postMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT , 10000);
+        //postMethod.getParams().setParameter(HttpMethodParams.RETRY_HANDLER , new DefaultHttpMethodRetryHandler());
+        InputStream inputStream = null;
+        try {
+
+            if (httpClient.executeMethod(postMethod) == HttpStatus.SC_OK) {
+
+                //读取内容
+                inputStream = postMethod.getResponseBodyAsStream();
+                content     = IOUtils.toByteArray(inputStream);
+            } else {
+
+                System.err.println("Method failed: " + postMethod.getStatusLine());
+            }
+        } catch (IOException ex) {
+
+            ex.printStackTrace();
+        } finally {
+
+            IOUtils.closeQuietly(inputStream);
+            postMethod.releaseConnection();
+        }
+        return content;
+    }
+   
+    public static byte[] doPostSH(String url , String str) {
+        byte[]     content    = null;
+        HttpClient httpClient = new HttpClient();
+        PostMethod postMethod = new PostMethod(url);
+        postMethod.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+        postMethod.setRequestBody(str);
+        postMethod.setRequestContentLength(str.getBytes().length);
+        //设置成了默认的恢复策略，在发生异常时候将自动重试3次，在这里你也可以设置成自定义的恢复策略
+        postMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT , 10000);
+        //postMethod.getParams().setParameter(HttpMethodParams.RETRY_HANDLER , new DefaultHttpMethodRetryHandler());
+        InputStream inputStream = null;
+        try {
+            if (httpClient.executeMethod(postMethod) == HttpStatus.SC_OK) {
+
+                //读取内容
+                inputStream = postMethod.getResponseBodyAsStream();
+                content     = IOUtils.toByteArray(inputStream);
+            } else {
+
+                System.err.println("Method failed: " + postMethod.getStatusLine());
+            }
+        } catch (IOException ex) {
+
+            ex.printStackTrace();
+        } finally {
+
+            IOUtils.closeQuietly(inputStream);
+            postMethod.releaseConnection();
+        }
+        return content;
+    }
+    
+    
+	public static void main(String[] args) {
+		
+		
+        String str = "{\r\n" + 
+        		"    \"width\":1920,\r\n" +
+        		"    \"height\":1080,\r\n" + 
+        		"    \"bg_image\":\"\",\r\n" + 
+        		"    \"bg_video\":\"\",\r\n" +
+        		"    \"bg_music\":\"http://synctime-iface.iyeeda.com/model/41fb36df-5662-4eee-8f65-1d88dc83f998.mp3\",\r\n" +
+				"    \"start\":30,\r\n" + 
+				"    \"end\":870,\r\n" +
+				"    \"mainPmx\":\"HJT.pmx\",\r\n" + 
+				"    \"pmx\":\"http://synctime-iface.iyeeda.com/model/b155a585-c072-4058-996f-39b848e7fc56.zip\",\r\n" + 
+				"    \"vmd\":\"http://synctime-iface.iyeeda.com/model/9ed75b8e-3f0f-4edf-8db5-0df45f51cace.vmd\",\r\n" + 
+				"    \"position\":\"0,0,0\",\r\n" + 
+				"    \"mainProp\":\"HHLLQQ.pmx\",\r\n" + 
+				"    \"prop\":\"http://synctime-iface.iyeeda.com/model/93ee2133-a273-4981-9b43-fd4f66e87f4e.zip\",\r\n" +
+				"    \"propVmd\":\"http://synctime-iface.iyeeda.com/model/c446f0bd-e17f-474c-a0f5-43dd53cd8928.vmd\",\r\n" +
+				"    \"propPos\":\"0,0,0\",\r\n" + 
+				"    \"propOutSideParent\":\"\",\r\n" + 
+				"    \"ik\":\"1\",\r\n" + 
+				"    \"offShadow\":false,\r\n" + 
+				"    \"prephysic\":false,\r\n" + 
+				"    \"autoTraceModel\":false,\r\n" + 
+				"    \"tdstyle\":false,\r\n" +
+				"    \"useUe4\":true,\r\n" + 
+        		"    \"useUe4Json\":false,\r\n" +
+        		"    \"scene\":\"http://synctime-iface.iyeeda.com/model/f85ec359-76aa-4cd3-b293-ed3a9ffde9be.zip\",\r\n" +
+        		"    \"scenePmx\":\"TYG.pmx\",\r\n" +
+        		"    \"scenePosition\":\"0,0,0\",\r\n" + 
+        		"    \"cameraMotion\":\"http://synctime-iface.iyeeda.com/model/cad265f6-09c1-4be2-8624-293be1e04a4e.vmd\",\r\n" + 
+        		"    \"skybox\":\"\",\r\n" + 
+        		"    \"cameraEffectConfig\":\"http://synctime-iface.iyeeda.com/model/812e9c48-7183-45da-a274-768424a42832.json\",\r\n" +
+        		"    \"lightConfig\":\"http://synctime-iface.iyeeda.com/model/233c6ba7-8e59-49b6-a7fb-0f1260843710.json\",\r\n" +
+        		"    \"recordStart\":0,\r\n" + 
+        		"    \"recordTime\":\"0\",\r\n" + 
+        		"    \"user_music\":\"\",\r\n" + 
+        		"    \"origin\":\"publicResource\"\r\n" + 
+        		"}\r\n" + 
+        		"";
+		
+        /*"    \"propVmd\":\"\",\r\n" + */
+//马
+		String s = "{\r\n" + 
+				"    \"width\":1920,\r\n" + 
+				//"    \"width\":1920,\r\n" +
+				
+				
+				"    \"height\":1080,\r\n" +
+			 	//"    \"height\":1080,\r\n" + 
+				
+			 	
+				"    \"bg_image\":\"\",\r\n" +
+				//"    \"bg_image\":\"\",\r\n" + 
+				
+				"    \"bg_video\":\"\",\r\n" + 
+				//"    \"bg_video\":\"\",\r\n" + 
+				
+				
+				"    \"bg_music\":\"http://synctime-iface.iyeeda.com/model/41fb36df-5662-4eee-8f65-1d88dc83f998.mp3\",\r\n" + 
+				//"    \"bg_music\":\"http://synctime-iface.iyeeda.com/model/41fb36df-5662-4eee-8f65-1d88dc83f998.mp3\",\r\n" + 
+				
+				"    \"start\":30,\r\n" + 
+				//"    \"start\":30,\r\n" + 
+				
+				"    \"end\":870,\r\n" + 
+				//"    \"end\":870,\r\n" +
+				
+				"    \"mainPmx\":\"HJT.pmx\",\r\n" + 
+				//"    \"mainPmx\":\"HJT.pmx\",\r\n" +
+				
+				"    \"pmx\":\"http://synctime-iface.iyeeda.com/model/b155a585-c072-4058-996f-39b848e7fc56.zip\",\r\n" + 
+				//"    \"pmx\":\"http://synctime-iface.iyeeda.com/model/b155a585-c072-4058-996f-39b848e7fc56.zip\",\r\n" +
+				
+				"    \"vmd\":\"http://synctime-iface.iyeeda.com/model/9ed75b8e-3f0f-4edf-8db5-0df45f51cace.vmd\",\r\n" + 
+				//"    \"vmd\":\"http://synctime-iface.iyeeda.com/model/9ed75b8e-3f0f-4edf-8db5-0df45f51cace.vmd\",\r\n" + 
+				
+				"    \"position\":\"0,0,0\",\r\n" + 
+				//"    \"position\":\"0,0,0\",\r\n" + 
+				
+				"    \"mainProp\":\"HHLLQQ.pmx\",\r\n" + 
+				//"    \"mainProp\":\"HHLLQQ.pmx\",\r\n" +
+				
+				"    \"prop\":\"http://synctime-iface.iyeeda.com/model/93ee2133-a273-4981-9b43-fd4f66e87f4e.zip\",\r\n" + 
+				//"    \"prop\":\"http://synctime-iface.iyeeda.com/model/93ee2133-a273-4981-9b43-fd4f66e87f4e.zip\",\r\n" +
+				
+				"    \"propVmd\":\"http://synctime-iface.iyeeda.com/model/c446f0bd-e17f-474c-a0f5-43dd53cd8928.vmd\",\r\n" + 
+				//"    \"propVmd\":\"http://synctime-iface.iyeeda.com/model/c446f0bd-e17f-474c-a0f5-43dd53cd8928.vmd\",\r\n" +
+				
+				"    \"propPos\":\"0,0,0\",\r\n" + 
+				//"    \"propPos\":\"0,0,0\",\r\n" +
+				
+				"    \"propOutsideParent\":\"\",\r\n" + 
+				//"    \"propOutSideParent\":\"\",\r\n" + 
+				
+				"    \"ik\":\"1\",\r\n" + 
+				//"    \"ik\":\"1\",\r\n" +
+				
+				"    \"offShadow\":false,\r\n" + 
+				//"    \"offShadow\":false,\r\n" +
+				
+				"    \"prephysic\":false,\r\n" +
+				//"    \"prephysic\":false,\r\n" + 
+				
+				"    \"autoTraceModel\":false,\r\n" + 
+				//"    \"autoTraceModel\":false,\r\n" +
+				
+				"    \"tdstyle\":false,\r\n" + 
+				//"    \"tdstyle\":false,\r\n" +
+				
+				"    \"useUe4\":true,\r\n" + 
+				//"    \"useUe4\":true,\r\n" + 
+				
+				"    \"useUe4Json\":false,\r\n" + 
+				//"    \"useUe4Json\":false,\r\n" +
+				
+				"    \"scene\":\"http://synctime-iface.iyeeda.com/model/f85ec359-76aa-4cd3-b293-ed3a9ffde9be.zip\",\r\n" + 
+				//"    \"scene\":\"http://synctime-iface.iyeeda.com/model/f85ec359-76aa-4cd3-b293-ed3a9ffde9be.zip\",\r\n" +
+				
+				"    \"scenePmx\":\"TYG.pmx\",\r\n" + 
+				//"    \"scenePmx\":\"TYG.pmx\",\r\n" +
+				
+				"    \"scenePosition\":\"0,0,0\",\r\n" + 
+				//"    \"scenePosition\":\"0,0,0\",\r\n" + 
+				
+				"    \"cameraMotion\":\"http://synctime-iface.iyeeda.com/model/cad265f6-09c1-4be2-8624-293be1e04a4e.vmd\",\r\n" + 
+				//"    \"cameraMotion\":\"http://synctime-iface.iyeeda.com/model/cad265f6-09c1-4be2-8624-293be1e04a4e.vmd\",\r\n" +
+				
+				"    \"skybox\":\"\",\r\n" + 
+				//"    \"skybox\":\"\",\r\n" +
+				
+				"    \"cameraEffectConfig\":\"http://synctime-iface.iyeeda.com/model/812e9c48-7183-45da-a274-768424a42832.json\",\r\n" + 
+				//"    \"cameraEffectConfig\":\"http://synctime-iface.iyeeda.com/model/812e9c48-7183-45da-a274-768424a42832.json\",\r\n" +
+				
+				"    \"lightConfig\":\"http://synctime-iface.iyeeda.com/model/233c6ba7-8e59-49b6-a7fb-0f1260843710.json\",\r\n" + 
+				//"    \"lightConfig\":\"http://synctime-iface.iyeeda.com/model/233c6ba7-8e59-49b6-a7fb-0f1260843710.json\",\r\n" +
+				
+				"    \"recordStart\":0,\r\n" + 
+				//"    \"recordStart\":0,\r\n" + 
+				
+				"    \"recordTime\":0,\r\n" + 
+				//"    \"recordTime\":\"0\",\r\n" +
+				
+				"    \"user_music\":\"\",\r\n" + 
+				//"    \"user_music\":\"\",\r\n" +
+				
+				"    \"origin\":\"publicResource\"\r\n" + 
+				//"    \"origin\":\"publicResource\"\r\n" + 
+				
+				"}\r\n" + 
+				"";
+		
+		
+		byte[] doGet = doPostSH("http://movie-progress.innvt91.com:8887/write/movie/queue?overwrite=true", s);
+		String e = new String(doGet);
+		System.out.println(e);
+
+    }
+
+}

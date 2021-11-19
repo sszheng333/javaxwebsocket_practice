@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+	</head>
+	<body>
+		<div>
+			<div>
+				<div id="executeprogress" style="width: 80%;">
+					<div id="percentdiv"></div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div>
+				  <form id="uploadForm" enctype="multipart/form-data"> 
+				<input type="file" id="file" name="myfile" />
+				  </form>
+				<button id="submitbtn">执行</button>
+			</div>
+		</div>
+		<script type="text/javascript" src="/css/js/jquery-3.2.1.js"></script>
+		<script type="text/javascript">
+			//初始化layui，进度条依赖element
+			$(function() {
+				//执行任务
+				document.getElementById('submitbtn').onclick = function() {
+					//将进度条设置为05
+					// element.progress('executeprogress', '0%');
+					document.getElementById('percentdiv').innerHTML = '0%';
+					//连接到websocket
+					connect();
+					receiveMessage();
+				}
+				var ws;
+				var host = window.location.host;
+				console.log(host);
+				//连接到websocket
+				function connect() {
+					if ("WebSocket" in window) {
+						ws = new WebSocket("ws://本机ip:8081/MovieMotion/testwebsocket");
+						//连接成功建立的回调方法
+						ws.onopen = function() {
+							console.log("连接成功");
+						};
+						//接收到消息的回调方法，websocket的controller里的onMessage方法session_to传过来的值
+						ws.onmessage = function(evt) {
+							//接收服务端的推送信息，改变进度条
+							// element.progress('executeprogress', evt.data + '%');
+							console.log("返回信息:" + evt.data);
+							document.getElementById('percentdiv').innerHTML = evt.data + '%';
+						};
+						ws.onclose = function() {
+							// 关闭 websocket
+							console.log("连接已关闭...");
+						};
+					} else {
+						// 浏览器不支持 WebSocket
+						alert("您的浏览器不支持 WebSocket!");
+					}
+				}
+
+				function receiveMessage() {				
+					$.ajax({
+						type: 'POST',						
+						url: 'http://本机ip:8081/MovieMotion/motion/execute',						
+						data: {}, //data:{page:1,size:3;}					
+						success: function(data) {
+							console.log("data", data);
+							//服务端返回，任务执行完毕，关闭连接
+							close();
+						},
+						error: function(xhr, type) {
+							alert('Ajax error!');
+							// 即使加载出错，也得重置
+							close();
+
+						}
+					});
+				}
+				//关闭websocket
+				function close() {
+					ws.close();
+				}
+
+
+			})
+		</script>
+	</body>
+</html>

@@ -1,0 +1,85 @@
+package com.comicyu.domain;
+
+import java.util.Map;
+
+public class ResponseStatus{
+	String status;
+	String message;
+	Long resultInt;
+	String resultString;
+	Map<String, Object> attribute;
+	Object data;
+
+	
+	
+	public Object getData() {
+		return data;
+	}
+
+	public void setData(Object data) {
+		this.data = data;
+	}
+
+	public Map<String, Object> getAttribute() {
+		return attribute;
+	}
+
+	public void setAttribute(Map<String, Object> map) {
+		this.attribute = map;
+	}
+
+	public void setOk(){
+		message="操作成功！";
+		status="ok";
+	}
+	
+	public void setError(){
+		message="操作失败！";
+		status="error";
+	}
+	
+	public void setOk(String message){
+		this.message=message;
+		status="ok";
+	}
+	
+	public void setError(String message){
+		this.message=message;
+		status="error";
+	}
+	
+	public boolean isOk(){
+		if(status!=null){ 
+			return status.equals("ok");
+		}
+		else{
+			return false;
+		}
+	}
+	
+	public String getResultString() {
+		return resultString;
+	}
+	public void setResultString(String resultString) {
+		this.resultString = resultString;
+	}
+	public Long getResultInt() {
+		return resultInt;
+	}
+	public void setResultInt(Long resultInt) {
+		this.resultInt = resultInt;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public String getMessage() {
+		return message;
+	}
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+}

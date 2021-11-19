@@ -1,0 +1,120 @@
+package com.comicyu.utils;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.Map.Entry;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.NameValuePair;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.FilePart;
+import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.comicyu.domain.ResponseStatus;
+import com.comicyu.global.Global;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.impl.client.CloseableHttpClient;
+
+/**
+ * post上传文件工具类
+ */
+public class PostUploadFile {
+    private final static Logger LOG = LoggerFactory.getLogger(PostUploadFile.class);
+
+    /**
+     * 上传至阿里云\
+     * 
+     */
+    public static ResponseStatus uploadFile(File file) {
+        JSONObject jsonObject = new JSONObject();
+        ResponseStatus status = new ResponseStatus();
+        System.out.println(file);
+        String vmd = null;
+        int requestStatus = 0;
+        try {
+            PostMethod filePost = new PostMethod(Global.uploadServerName);
+            HttpClient client = new HttpClient();
+            Part[] parts = { new FilePart("file", file, "multipart/form-data", "UTF-8"),
+                    new StringPart("token", "SDFKdfsdfdsf23sdfsSDFDF"), new StringPart("folder", "moviemotion/"),
+                    new StringPart("bucket", "synctime-iface"), new StringPart("Content-Type", "multipart/from-data") };
+            MultipartRequestEntity entity = new MultipartRequestEntity(parts, filePost.getParams());
+            filePost.setRequestEntity(entity);
+            requestStatus = client.executeMethod(filePost);
+            System.out.println(requestStatus);
+            if (requestStatus == HttpStatus.SC_OK) {
+                System.out.println("上传成功");
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                InputStream in = filePost.getResponseBodyAsStream();
+                int len = 0;
+                byte[] buf = new byte[1024];
+                while ((len = in.read(buf)) != -1) {
+                    out.write(buf, 0, len);
+                }
+                String responseMsg = out.toString("UTF-8");
+                if (responseMsg != null && !"".equals(responseMsg)) {
+                    jsonObject = JSON.parseObject(responseMsg);
+                    String rs = jsonObject.getString("resultString");
+                    vmd = Global.downloadServerName + "moviemotion/" + rs;
+                    System.out.println(vmd);
+//                    file.delete();
+                }
+                out.close();
+                in.close();
+                status.setOk(vmd);
+                return status;
+            } else {
+                System.out.println("上传失败");
+                status.setError("上传失败");
+                return status;
+            }
+        } catch (Exception e) {
+            // TODO: handle exception
+            e.printStackTrace();
+            status.setError("上传失败");
+            return status;
+        }
+    }
+
+    public static void main(String[] args) {
+        uploadFile(null);
+    }
+
+}

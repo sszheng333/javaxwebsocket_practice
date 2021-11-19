@@ -1,0 +1,32 @@
+/**
+ * 
+ */
+package com.comicyu.service;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
+import com.comicyu.domain.ResponseStatus;
+
+/**   
+*    
+* 项目名称：UploadVideoTransfer   
+* 类名称：MotionTransferService   
+* 类描述：  动作迁移
+* 创建人：zhengss  
+* 创建时间：2021年6月11日 上午9:47:42   
+* @version        
+*/
+ public interface MotionTransferService {
+
+   //文件上传+动作提取
+    ResponseStatus getTransferResult(MultipartFile file, String token,String videoKey, HttpServletRequest request, HttpServletResponse response);
+
+ /*  //查询文件上传进度
+    String getUploadProgressBar(String videoKey);*/
+
+    
+}

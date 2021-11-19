@@ -1,0 +1,179 @@
+/**
+ * 
+ */
+package com.comicyu.service.Impl;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.multipart.FilePart;
+import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
+import com.alibaba.fastjson.JSONObject;
+import com.comicyu.domain.ResponseStatus;
+import com.comicyu.global.Global;
+import com.comicyu.service.MotionTransferService;
+import com.comicyu.utils.HttpUtil;
+
+/**
+ * 
+ * 项目名称：UploadVideoTransfer 类名称：MotionTransferServiceImpl 类描述： 创建人：zhengss
+ * 创建时间：2021年6月11日 上午9:55:08
+ * 
+ * @version
+ */
+@Service
+public class MotionTransferServiceImpl implements MotionTransferService {
+
+    @Override
+    public ResponseStatus uploadVideoToNetease(MultipartFile file, String token, String videoKey,
+            HttpServletRequest request, HttpServletResponse response) {
+        // 1.缓存视频到本地服务器,获取状态,将进度保存至redis
+        ResponseStatus status = new ResponseStatus();
+        System.out.println(file);
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        if (token != null && token.equals(Global.serverToen)) {
+            try {
+                String newFileName = UUID.randomUUID().toString();
+
+                // String type= file.getContentType();
+                String filename = file.getOriginalFilename();
+                if (filename != null && filename.lastIndexOf(".") != -1
+                        && filename.lastIndexOf(".") != filename.length() - 1) {
+                    newFileName += filename.substring(filename.lastIndexOf("."));
+                }
+                File fileFolderPath = new File(Global.folderVideoPath);
+                if (fileFolderPath.exists() == false) {
+                    fileFolderPath.mkdirs();
+                }
+                File imagePath = new File(fileFolderPath, newFileName);
+                file.transferTo(imagePath);
+                status.setResultString(Global.serverName + newFileName + "&type=file");
+                System.out.println(Global.serverName + newFileName + "&type=file");
+                status.setOk();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                status.setError();
+            }
+        } else {
+            status.setError();
+        }
+        // 2.如果成功,上传视频至网易服务器,最终生成url
+
+        // 3.发get请求下载动作文件
+
+        // 4.存到阿里云
+
+        // 5.将文件名+存储路径以json方式发给appserver
+
+        return status;
+    }
+
+    // 查询文件上传进度
+    @Override
+    public String getUploadProgressBar(String videoKey) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public static void main(String[] args) {
+        File file = new File("C:/Users/Administrator/Desktop/漫画宇宙/bear.mp4");
+        String targetURL = "http://dianjing-server-motion-v2-53-8080.apps.danlu.netease.com/api/v2/motion/upload";
+        PostMethod filePost = new PostMethod(targetURL); // 若没有commons-codec-1.4-bin.zip,
+                                                         // 这里将会出错
+        GetMethod videoGet = new GetMethod(
+                "http://dianjing-server-motion-v2-53-8080.apps.danlu.netease.com/api/v2/retargeting/result");
+        try {
+
+            // 通过以下方法可以模拟页面参数提交
+            HttpMethodParams params = new HttpMethodParams();
+            params.setParameter("retargeting", "true");
+            params.setParameter("target", "qss");
+            params.setParameter("export_fbx", "false");
+            params.setParameter("export_txt", "true");
+            params.setParameter("format", "unity");
+            params.setParameter("compress", "true");
+            filePost.setParams(params);
+            Part[] parts = { new FilePart("file", file) };
+
+            filePost.setRequestEntity(new MultipartRequestEntity(parts, filePost.getParams()));
+            HttpClient client = new HttpClient();
+            client.getHttpConnectionManager().getParams().setConnectionTimeout(10000);
+            int status = client.executeMethod(filePost);
+            if (status == 201) {
+                System.out.println("上传成功");
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                InputStream in = filePost.getResponseBodyAsStream();
+                int len = 0;
+                byte[] buf = new byte[1024];
+                while ((len = in.read(buf)) != -1) {
+                    out.write(buf, 0, len);
+                }
+                String responseMsg = out.toString("UTF-8");
+                System.out.println(responseMsg);
+                // 上传成功
+                JSONObject json = JSONObject.parseObject(responseMsg);
+                Integer code = json.getInteger("code");
+                String msg = json.getString("msg");
+                String requestid = json.getString("requestid");
+                Map<String, Object> map = new HashMap<>();
+                map.put("requestid", requestid);
+                String txtObjectId = "";
+                while (true) {
+                    byte[] doGet = HttpUtil.doGet(
+                            "http://dianjing-server-motion-v2-53-8080.apps.danlu.netease.com/api/v2/retargeting/result",
+                            map);
+                    Thread.sleep(7000);
+                    String result = new String(doGet);
+                    JSONObject jsonResult = JSONObject.parseObject(result);
+                    String progress = jsonResult.getString("status");
+                    if (progress.equals("done")) {
+                        txtObjectId = jsonResult.getString("txt_objectid");
+                        break;
+                    }
+                    byte[] doGetTxt = HttpUtil
+                            .doGet("http://dianjing-server-motion-v2-53-8080.apps.danlu.netease.com/api/v2/files/"
+                                    + txtObjectId);
+                    String txt = new String(doGetTxt);
+                    map.clear();
+                    map.put("txt", txt);
+                    for (Object key : map.keySet()) {
+                        String value = (String) map.get(key);
+                        System.out.println(key + " : " + value);
+                    }
+                    // 获取value
+                    for (Object value : map.values()) {
+                        System.out.println(value);
+                    }
+                }
+            } else {
+                System.out.println("上传失败");
+                // 上传失败
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            filePost.releaseConnection();
+            videoGet.releaseConnection();
+        }
+
+    }
+
+}
